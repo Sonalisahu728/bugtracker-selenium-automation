@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Tests that assert the CORRECT behaviour for suspected defects. They are expected to FAIL until fixed. -->
+<suite name="BugTrack - Known Defects" verbose="1">
+  <test name="Known defects">
+    <groups>
+      <run>
+        <include name="known-defect"/>
+      </run>
+    </groups>
+    <packages>
+      <package name="com.bugtracker.automation.api"/>
+    </packages>
+  </test>
+</suite>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Quick sanity check of the critical paths (run on every commit). -->
+<suite name="BugTrack - Smoke" verbose="1">
+  <listeners>
+    <listener class-name="com.bugtracker.automation.listeners.TestListener"/>
+  </listeners>
+  <test name="Smoke">
+    <groups>
+      <run>
+        <include name="smoke"/>
+      </run>
+    </groups>
+    <packages>
+      <package name="com.bugtracker.automation.ui"/>
+      <package name="com.bugtracker.automation.api"/>
+    </packages>
+  </test>
+</suite>

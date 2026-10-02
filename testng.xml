@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Full regression: UI + API, everything except suspected defects.
+     For parallel runs add parallel="classes" thread-count="3" to <suite> (each thread gets its own browser). -->
+<suite name="BugTrack - Full Regression" verbose="1">
+  <listeners>
+    <listener class-name="com.bugtracker.automation.listeners.TestListener"/>
+  </listeners>
+  <test name="BugTrack UI and API">
+    <groups>
+      <run>
+        <exclude name="known-defect"/>
+      </run>
+    </groups>
+    <packages>
+      <package name="com.bugtracker.automation.ui"/>
+      <package name="com.bugtracker.automation.api"/>
+    </packages>
+  </test>
+</suite>

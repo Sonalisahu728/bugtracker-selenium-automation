@@ -1,0 +1,83 @@
+name: BugTrack Automation
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "30 20 * * *"        # nightly, 02:00 IST
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "TestNG suite file"
+        default: "testng.xml"
+        type: choice
+        options: [testng.xml, testng-smoke.xml, testng-api.xml, testng-known-defects.xml]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bugtracker_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    steps:
+      - name: Checkout automation project
+        uses: actions/checkout@v4
+
+      - name: Checkout the application under test
+        uses: actions/checkout@v4
+        with:
+          repository: Sonalisahu728/bugtracker-fullstack
+          path: app
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build and start the backend (Spring Boot)
+        env:
+          # Spring maps these environment variables onto spring.datasource.password / jwt.secret
+          SPRING_DATASOURCE_PASSWORD: postgres
+          JWT_SECRET: ci-only-secret-key-that-is-long-enough-for-hs256-signing
+        run: |
+          mvn -B -q -f app/backend/pom.xml -DskipTests package
+          JAR=$(ls app/backend/target/*.jar | grep -v original | head -1)
+          nohup java -jar "$JAR" > backend.log 2>&1 &
+
+      - name: Serve the frontend on :5500
+        run: nohup python3 -m http.server 5500 --directory app/frontend > frontend.log 2>&1 &
+
+      - name: Wait until both are up
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8080/api/auth/login \
+                   -H 'Content-Type: application/json' -d '{}' || true)
+            if [ "$code" != "000" ]; then echo "backend is up (HTTP $code)"; break; fi
+            sleep 2
+          done
+          curl -sf http://localhost:5500/index.html > /dev/null && echo "frontend is up"
+
+      - name: Run tests
+        run: mvn -B test -DsuiteXmlFile=${{ github.event.inputs.suite || 'testng.xml' }} -Dheadless=true
+
+      - name: Upload reports, screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            target/surefire-reports
+            target/screenshots
+            backend.log
+          if-no-files-found: ignore
